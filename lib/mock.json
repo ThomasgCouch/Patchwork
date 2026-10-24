@@ -1,0 +1,66 @@
+{
+  "username": "octocat",
+  "languages": ["TypeScript", "Python", "Go"],
+  "patches": [
+    {
+      "repo": "acme/widgets",
+      "stars": 1200,
+      "title": "Fix typo in parser error message",
+      "url": "https://github.com/acme/widgets/issues/42",
+      "language": "TypeScript",
+      "score": 0.91,
+      "summary": "The parser prints 'unexpcted token' when it hits bad input. Fix the spelling in the error string.",
+      "difficulty": "easy",
+      "first_steps": ["Search the repo for 'unexpcted'", "Correct the spelling", "Run the test suite and open a PR"],
+      "files_to_look_at": ["src/parser.ts"]
+    },
+    {
+      "repo": "example/datakit",
+      "stars": 860,
+      "title": "Add docstring examples to the CSV loader",
+      "url": "https://github.com/example/datakit/issues/17",
+      "language": "Python",
+      "score": 0.84,
+      "summary": "The CSV loader has no usage examples in its docstrings. Add short runnable examples for the main functions.",
+      "difficulty": "easy",
+      "first_steps": ["Read loaders/csv.py", "Add an Examples section to each public function", "Run doctest to check them"],
+      "files_to_look_at": ["datakit/loaders/csv.py"]
+    },
+    {
+      "repo": "demo/gopher-cli",
+      "stars": 340,
+      "title": "Support --quiet flag",
+      "url": "https://github.com/demo/gopher-cli/issues/88",
+      "language": "Go",
+      "score": 0.77,
+      "summary": "Users want to silence normal output. Add a --quiet flag that suppresses everything except errors.",
+      "difficulty": "medium",
+      "first_steps": ["Find where flags are defined in cmd/root.go", "Add a quiet bool flag", "Gate log output on it and add a test"],
+      "files_to_look_at": ["cmd/root.go"]
+    },
+    {
+      "repo": "sample/ui-kit",
+      "stars": 5400,
+      "title": "Button focus ring is invisible in dark mode",
+      "url": "https://github.com/sample/ui-kit/issues/301",
+      "language": "TypeScript",
+      "score": 0.72,
+      "summary": "The focus outline on buttons disappears against dark backgrounds. Adjust the CSS so it stays visible.",
+      "difficulty": "easy",
+      "first_steps": ["Reproduce in the dark theme story", "Update the focus-visible outline colour token", "Check contrast and add a screenshot to the PR"],
+      "files_to_look_at": ["src/components/Button.css"]
+    },
+    {
+      "repo": "oss/pytools",
+      "stars": 95,
+      "title": "Handle empty input in tokenizer",
+      "url": "https://github.com/oss/pytools/issues/9",
+      "language": "Python",
+      "score": 0.65,
+      "summary": "Calling the tokenizer with an empty string raises an IndexError. It should return an empty list.",
+      "difficulty": "unknown",
+      "first_steps": ["Write a failing test for tokenize('')", "Add an early return for empty input", "Confirm existing tests still pass"],
+      "files_to_look_at": ["pytools/tokenizer.py"]
+    }
+  ]
+}
