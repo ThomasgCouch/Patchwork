@@ -35,13 +35,15 @@ Repo: ${issue.repo}
 Issue title: ${issue.title}
 Issue body: ${bodySnippet || 'No description provided.'}
 
+You cannot see the repository, only the issue text above.
 Return JSON only, no markdown fences:
 {
   "summary": "2 sentences, plain English",
-  "difficulty": "easy",
-  "first_steps": ["Step 1", "Step 2", "Step 3"],
-  "files_to_look_at": ["likely/path/file.ts"]
-}`;
+  "difficulty": "easy | medium | hard",
+  "first_steps": ["3 to 5 short, concrete steps"],
+  "files_to_look_at": []
+}
+Rules for files_to_look_at: list only file paths or file names that appear in the issue text above, exactly as written. Never invent paths or use wildcards like *.ui. If the issue names no file, return an empty array.`;
 }
 
 async function callLocal(prompt: string): Promise<string | null> {
@@ -119,6 +121,35 @@ export async function callGemma(prompt: string): Promise<string> {
   throw lastErr;
 }
 
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+const DIFFICULTY_ALIASES: Record<string, Difficulty> = {
+  easy: 'easy', beginner: 'easy', simple: 'easy', trivial: 'easy',
+  medium: 'medium', moderate: 'medium', intermediate: 'medium',
+  hard: 'hard', difficult: 'hard', advanced: 'hard', complex: 'hard',
+};
+
+/** Maps whatever the model wrote ("Easy.", "Moderate") onto easy | medium | hard, or null. */
+export function normalizeDifficulty(raw: unknown): Difficulty | null {
+  if (typeof raw !== 'string') return null;
+  return DIFFICULTY_ALIASES[raw.toLowerCase().replace(/[^a-z]/g, '')] ?? null;
+}
+
+/**
+ * Rough guess from the issue itself, used when the AI gives no usable difficulty.
+ * Long descriptions and long discussions tend to mean bigger tasks.
+ */
+export function estimateDifficulty(issue: Pick<ScoredIssue, 'body' | 'comments'>): Difficulty {
+  const bodyLength = (issue.body || '').length;
+  const points =
+    (bodyLength > 1500 ? 1 : 0) +
+    (bodyLength > 3000 ? 1 : 0) +
+    (issue.comments >= 5 ? 1 : 0) +
+    (issue.comments >= 10 ? 1 : 0);
+  if (points === 0) return 'easy';
+  return points >= 3 ? 'hard' : 'medium';
+}
+
 const isStringList = (v: unknown): v is string[] =>
   Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string' && s.trim() !== '');
 
@@ -149,7 +180,7 @@ export async function explain(issue: ScoredIssue, languages: string[]): Promise<
       language: issue.language,
       score: issue.score,
       summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary : issue.title,
-      difficulty: ['easy', 'medium', 'hard'].includes(parsed.difficulty) ? parsed.difficulty : 'unknown',
+      difficulty: normalizeDifficulty(parsed.difficulty) ?? estimateDifficulty(issue),
       first_steps: isStringList(parsed.first_steps)
         ? parsed.first_steps
         : ['Fork and clone the repository', 'Find the affected file in the codebase', 'Run tests and submit a PR'],
@@ -170,7 +201,7 @@ export async function explain(issue: ScoredIssue, languages: string[]): Promise<
       language: issue.language,
       score: issue.score,
       summary: issue.title,
-      difficulty: 'unknown',
+      difficulty: estimateDifficulty(issue),
       first_steps: [
         'Fork and clone the repository locally',
         'Search the codebase for the feature or error mentioned in the title',
