@@ -68,7 +68,7 @@ async function callModel(model: string, prompt: string): Promise<string> {
     config: {
       // Gemma spends 1000+ thinking tokens by default (25-30s per call); this is ~5s.
       // Other models reject thinkingLevel, so only Gemma gets it.
-      ...(model.startsWith('gemma') && { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } }),
+      ...(model.startsWith('gemma') && { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
       responseMimeType: 'application/json',
       abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     },
