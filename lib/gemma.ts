@@ -7,10 +7,11 @@ import { ScoredIssue, Patch } from './types';
 const cache = new Map<string, Patch>();
 
 const PRIMARY_MODEL = process.env.GEMMA_MODEL || 'gemma-4-26b-a4b-it';
-const FALLBACK_MODEL = 'gemini-3.8-flash';
+// Measured ~5s per call; gemini-3.8-flash timed out at 30s and rejects thinkingLevel.
+const FALLBACK_MODEL = 'gemini-flash-lite-latest';
 
 // Two sequential attempts must fit inside the route's 30s maxDuration.
-const CALL_TIMEOUT_MS = 10_000;
+const CALL_TIMEOUT_MS = 12_000;
 
 // Created lazily so a missing key or import order can't break module load.
 let client: GoogleGenAI | null = null;
@@ -68,7 +69,8 @@ async function callModel(model: string, prompt: string): Promise<string> {
     contents: prompt,
     config: {
       // Gemma spends 1000+ thinking tokens by default (25-30s per call); this is ~5s.
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+      // Other models reject thinkingLevel, so only Gemma gets it.
+      ...(model.startsWith('gemma') && { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
       responseMimeType: 'application/json',
       abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     },
@@ -76,9 +78,27 @@ async function callModel(model: string, prompt: string): Promise<string> {
   return res.text ?? '';
 }
 
+// Gemma returns an occasional 500 within a second; one quick retry is cheap.
+// Timeouts carry no status, so they are not retried.
+function isRetryable(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status;
+  return status === 429 || (status !== undefined && status >= 500);
+}
+
+async function callModelWithRetry(model: string, prompt: string): Promise<string> {
+  try {
+    return await callModel(model, prompt);
+  } catch (err: unknown) {
+    if (!isRetryable(err)) throw err;
+    console.warn(`[Gemma] ${model} returned a retryable error, retrying once`);
+    return callModel(model, prompt);
+  }
+}
+
 /**
  * Calls local Ollama (USE_LOCAL=1) or the Google GenAI API.
- * Tries the primary model, then the fallback model; each attempt is time-boxed.
+ * Tries the primary model (one quick retry on 429/5xx), then the fallback model;
+ * each attempt is time-boxed.
  */
 export async function callGemma(prompt: string): Promise<string> {
   if (process.env.USE_LOCAL === '1') {
@@ -90,7 +110,7 @@ export async function callGemma(prompt: string): Promise<string> {
   let lastErr: unknown;
   for (const model of models) {
     try {
-      const text = await callModel(model, prompt);
+      const text = await callModelWithRetry(model, prompt);
       if (text) return text;
       lastErr = new Error(`Empty response from ${model}`);
     } catch (err: unknown) {
