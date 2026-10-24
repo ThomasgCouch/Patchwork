@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const username = String(body?.username ?? "").trim();
 
-  // Offline / no-wifi fallback: USE_MOCK=1 in .env.local
+  // Offline / no-wifi fallback: USE_MOCK=1 in .env
   if (process.env.USE_MOCK === "1") return Response.json({ ...mock, username });
 
   if (!USERNAME.test(username)) {
