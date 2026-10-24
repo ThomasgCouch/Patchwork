@@ -175,16 +175,57 @@
   align-items: center;
   gap: 8px;
   color: var(--muted);
-}
 .langChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--patch);
   color: var(--patch-text);
+  border: 2px solid var(--patch);
   padding: 4px 12px;
   border-radius: 999px;
+  font: inherit;
   font-weight: 700;
   font-size: 16px;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
 }
-
+.langChip:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.langChip:focus-visible,
+.clearChip:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.langChip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.langChipDim {
+  background: transparent;
+  color: var(--ink);
+}
+.chipCount {
+  font-size: 13px;
+  opacity: 0.85;
+}
+.clearChip {
+  background: transparent;
+  border: 2px dashed var(--muted);
+  color: var(--ink);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filterNote {
+  color: var(--muted);
+  font-weight: 400;
+}
+}
 /* The quilt */
 .grid {
   display: grid;
