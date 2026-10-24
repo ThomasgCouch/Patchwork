@@ -4,6 +4,8 @@ Apart of 2026 Hacktoberfest @ the University of Surrey
 
 > **Stitch your first patch.** Patchwork reads your GitHub username, finds open `good first issue` tickets that fit your skills, and uses Gemma 4 to explain each one and where to start.
 
+**Live site: <https://patchwork-zeta.vercel.app>**
+
 [![Powered by Gemma 4](https://img.shields.io/badge/Powered%20by-Gemma%204-blue.svg)](https://ai.google.dev/)
 [![Next.js](https://img.shields.io/badge/Framework-Next.js%2016-black.svg)](https://nextjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
