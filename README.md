@@ -120,4 +120,4 @@ No keys yet? Set `USE_MOCK=1` in `.env.local` to try the UI with sample data.
 ## License
 
 MIT. See [LICENSE](LICENSE).
-````
+
