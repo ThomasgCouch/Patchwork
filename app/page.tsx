@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { MatchResponse, Patch } from "@/lib/types";
 import mockJson from "@/lib/mock.json";
 import SearchBox from "@/components/SearchBox";
@@ -13,6 +13,36 @@ import styles from "./page.module.css";
 const USE_MOCK = false;
 
 const REPO_URL = "https://github.com/ThomasgCouch/Patchwork";
+
+// Shown in turn while /api/match works (GitHub lookups + Gemma take a few seconds).
+const LOADING_STEPS = [
+  "Reading your public repos…",
+  "Working out your top languages…",
+  "Searching for good first issues…",
+  "Ranking the best fits…",
+  "Asking Gemma to explain each one…",
+  "Stitching your patches together…",
+];
+
+function LoadingStatus({ username }: { username: string }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)), 1600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <p className={styles.status} aria-live="polite">
+      <strong>@{username}</strong> · {LOADING_STEPS[step]}
+    </p>
+  );
+}
+
+// Keeps ?u=<username> in the address bar so a search can be shared or bookmarked.
+function setUserParam(username: string) {
+  const params = new URLSearchParams(window.location.search);
+  params.set("u", username);
+  window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
+}
 
 type State =
   | { kind: "idle" }
@@ -71,8 +101,12 @@ function friendlyError(raw: string): string {
 
 export default function Home() {
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [filter, setFilter] = useState<string | null>(null);
+  const [initialUser, setInitialUser] = useState("");
 
   async function search(username: string) {
+    setFilter(null);
+    setUserParam(username);
     setState({ kind: "loading", username });
     try {
       const data = await fetchMatches(username);
@@ -91,7 +125,18 @@ export default function Home() {
     }
   }
 
+  // Open with ?u=<username> to search straight away (handy for the demo).
+  useEffect(() => {
+    const u = new URLSearchParams(window.location.search).get("u");
+    if (u) {
+      setInitialUser(u); // eslint-disable-line react-hooks/set-state-in-effect -- one-off read of the URL on load
+      search(u);
+    }
+  }, []);
+
   const loading = state.kind === "loading";
+  const patches = state.kind === "results" ? state.data.patches : [];
+  const visible = filter ? patches.filter((p) => p.language === filter) : patches;
 
   return (
     <div className={styles.page}>
@@ -107,13 +152,13 @@ export default function Home() {
           We read your public GitHub repos, find open <strong>good first issues</strong> that fit
           your skills, and Gemma 4 explains each one and where to start.
         </p>
-        <SearchBox onSearch={search} loading={loading} />
+        <SearchBox key={initialUser} initial={initialUser} onSearch={search} loading={loading} />
       </header>
 
       <main className={styles.main}>
         {state.kind === "loading" && (
           <>
-            <p className={styles.status}>Stitching patches for @{state.username}…</p>
+            <LoadingStatus username={state.username} />
             <div className={styles.grid}>
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className={styles.skeleton} />
@@ -151,26 +196,39 @@ export default function Home() {
           <>
             <div className={styles.resultsHead}>
               <h2>
-                {state.data.patches.length} patches for @{state.data.username}
+                {visible.length} {visible.length === 1 ? "patch" : "patches"} for @{state.data.username}
+                {filter && <span className={styles.filterNote}> in {filter}</span>}
               </h2>
-              <div className={styles.langs}>
+              <div className={styles.langs} role="group" aria-label="Filter by language">
                 <span>Your languages:</span>
                 {state.data.languages.map((l) => {
                   const c = languageColour(l);
+                  const count = patches.filter((p) => p.language === l).length;
+                  const active = filter === l;
                   return (
-                    <span
+                    <button
                       key={l}
-                      className={styles.langChip}
+                      type="button"
+                      className={`${styles.langChip} ${filter && !active ? styles.langChipDim : ""}`}
                       style={{ "--patch": c, "--patch-text": textOn(c) } as CSSProperties}
+                      aria-pressed={active}
+                      disabled={count === 0}
+                      title={count === 0 ? `No patches in ${l} this time` : `Show only ${l}`}
+                      onClick={() => setFilter(active ? null : l)}
                     >
-                      {l}
-                    </span>
+                      {l} <span className={styles.chipCount}>{count}</span>
+                    </button>
                   );
                 })}
+                {filter && (
+                  <button type="button" className={styles.clearChip} onClick={() => setFilter(null)}>
+                    Show all
+                  </button>
+                )}
               </div>
             </div>
             <div className={styles.grid}>
-              {state.data.patches.map((p) => (
+              {visible.map((p) => (
                 <PatchCard key={p.url} patch={p} />
               ))}
             </div>

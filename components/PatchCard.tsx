@@ -11,6 +11,8 @@ export default function PatchCard({ patch }: { patch: Patch }) {
   const colour = languageColour(patch.language);
   const files = patch.files_to_look_at.filter((f) => f && f.toLowerCase() !== "unknown");
   const match = Math.round(Math.max(0, Math.min(1, patch.score)) * 100);
+  const norm = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
+  const showSummary = !!patch.summary && norm(patch.summary) !== norm(patch.title);
 
   return (
     <article
@@ -38,7 +40,7 @@ export default function PatchCard({ patch }: { patch: Patch }) {
         <span className={styles.badge}>{match}% match</span>
       </div>
 
-      <p className={styles.summary}>{patch.summary}</p>
+      {showSummary && <p className={styles.summary}>{patch.summary}</p>}
 
       {patch.first_steps.length > 0 && (
         <section>
