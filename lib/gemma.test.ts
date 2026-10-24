@@ -36,7 +36,9 @@ async function testGemma() {
   const cacheElapsed = Date.now() - cacheStart;
   console.log(`Cache response took ${cacheElapsed}ms (should be < 5ms)`);
 
-  if (patch.summary && patch.first_steps.length > 0 && cacheElapsed < 20) {
+  // difficulty stays 'unknown' when the AI call failed and explain() returned its fallback
+  const aiWorked = patch.difficulty !== 'unknown';
+  if (aiWorked && cachedPatch === patch && patch.first_steps.length > 0 && cacheElapsed < 20) {
     console.log('\nALL GEMMA CHECKS PASSED!');
   } else {
     console.log('\nCHECKS FAILED');
